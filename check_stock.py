@@ -1,5 +1,6 @@
 import os
 import requests
+from urllib.parse import quote
 
 SKU = "MH5T4AB/A"  # test iPad SKU
 
@@ -23,10 +24,11 @@ seen = set()
 
 for location in LOCATIONS:
     url = (
-        "https://www.apple.com/ae/shop/fulfillment-messages"
-        f"?fae=true&pl=true&mts.0=regular&mts.1=compact"
-        f"&parts.0={SKU}"
-        f"&location={location}"
+        "https://www.apple.com/ae/shop/retail/pickup-message"
+        "?pl=true"
+        "&mts.0=regular"
+        f"&parts.0={quote(SKU, safe='')}"
+        f"&location={quote(location)}"
     )
 
     r = requests.get(url, headers=headers, timeout=20)
@@ -36,6 +38,7 @@ for location in LOCATIONS:
     print("CONTENT TYPE:", r.headers.get("content-type"))
 
     if r.status_code != 200:
+        print(r.text[:300])
         continue
 
     try:
@@ -45,31 +48,26 @@ for location in LOCATIONS:
         print(r.text[:500])
         continue
 
-    stores = (
-        data.get("body", {})
-            .get("content", {})
-            .get("pickupMessage", {})
-            .get("stores", [])
-    )
+    stores = data.get("body", {}).get("stores", [])
+
+    print("STORES FOUND:", len(stores))
 
     for store in stores:
         name = store.get("storeName", "Unknown Apple Store")
+        store_number = store.get("storeNumber", name)
 
-        if name in seen:
+        if store_number in seen:
             continue
 
-        seen.add(name)
+        seen.add(store_number)
 
         part = store.get("partsAvailability", {}).get(SKU, {})
+        status = str(part.get("pickupDisplay", "")).lower()
 
-        status = (
-            part.get("pickupDisplay")
-            or part.get("pickupSearchQuote")
-            or ""
-        )
+        print(name, "->", status)
 
-        if "available" in str(status).lower() and "unavailable" not in str(status).lower():
-            available.append(f"{name} — {status}")
+        if status == "available":
+            available.append(name)
 
 print("AVAILABLE:", available)
 
@@ -78,12 +76,12 @@ if available:
         "🚨 APPLE UAE PICKUP AVAILABLE\n\n"
         "TEST: iPad Air\n"
         f"SKU: {SKU}\n\n"
-        + "\n".join(f"✅ {x}" for x in available)
+        + "\n".join(f"✅ {store}" for store in available)
     )
 
     telegram_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
 
-    requests.post(
+    resp = requests.post(
         telegram_url,
         json={
             "chat_id": CHAT_ID,
@@ -91,3 +89,5 @@ if available:
         },
         timeout=20,
     )
+
+    print("TELEGRAM STATUS:", resp.status_code)
