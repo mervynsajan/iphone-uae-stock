@@ -2,7 +2,8 @@ import os
 import requests
 from urllib.parse import quote
 
-SKU = "MJX74AH/A"  # test iPhone
+#SKU = "MJX74AH/A"  # iPhone
+SKU = "MH5T4AB/A" #ipad air
 
 NTFY_TOPIC = "mervyn_iphone_stock" # ntfy name
 
