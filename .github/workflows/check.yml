@@ -3,7 +3,7 @@ name: Check Apple UAE Stock
 on:
   workflow_dispatch:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "2-59/5 * * * *"
 
 jobs:
   check-stock:
