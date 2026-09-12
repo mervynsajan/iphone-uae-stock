@@ -2,7 +2,7 @@ import os
 import requests
 from urllib.parse import quote
 
-SKU = "MH5T4AB/A"  # test iPad SKU
+SKU = "MJX74AH/A"  # test iPhone
 
 LOCATIONS = [
     "Dubai",
@@ -74,7 +74,7 @@ print("AVAILABLE:", available)
 if available:
     message = (
         "🚨 APPLE UAE PICKUP AVAILABLE\n\n"
-        "TEST: iPad Air\n"
+        "iPhone 18 Pro Max 256GB Burgundy\n"
         f"SKU: {SKU}\n\n"
         + "\n".join(f"✅ {store}" for store in available)
     )
