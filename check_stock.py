@@ -78,16 +78,23 @@ if available:
         f"SKU: {SKU}\n\n"
         + "\n".join(f"✅ {store}" for store in available)
     )
-
-    telegram_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-
-    resp = requests.post(
-        telegram_url,
-        json={
-            "chat_id": CHAT_ID,
-            "text": message,
-        },
-        timeout=20,
+else:
+    message = (
+        "❌ iPhone still unavailable\n\n"
+        "iPhone 18 Pro Max 256GB Burgundy\n"
+        f"SKU: {SKU}\n\n"
+        "Checked all 5 UAE Apple Stores."
     )
 
-    print("TELEGRAM STATUS:", resp.status_code)
+telegram_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+
+resp = requests.post(
+    telegram_url,
+    json={
+        "chat_id": CHAT_ID,
+        "text": message,
+    },
+    timeout=20,
+)
+
+print("TELEGRAM STATUS:", resp.status_code)
