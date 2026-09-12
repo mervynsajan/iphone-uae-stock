@@ -1,11 +1,12 @@
 import os
 import requests
 from urllib.parse import quote
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
-SKU = "MJX74AH/A"  # iPhone
-#SKU = "MH5T4AB/A" #ipad air
+SKU = "MJX74AH/A"
 
-NTFY_TOPIC = "mervyn_iphone_stock" # ntfy name
+PRODUCT_NAME = "iPhone 18 Pro Max 256GB Burgundy"
 
 LOCATIONS = [
     "Dubai",
@@ -34,85 +35,148 @@ for location in LOCATIONS:
         f"&location={quote(location)}"
     )
 
-    r = requests.get(url, headers=headers, timeout=20)
-
-    print("LOCATION:", location)
-    print("STATUS:", r.status_code)
-    print("CONTENT TYPE:", r.headers.get("content-type"))
-
-    if r.status_code != 200:
-        print(r.text[:300])
-        continue
-
     try:
-        data = r.json()
-    except Exception:
-        print("Apple returned non-JSON")
-        print(r.text[:500])
-        continue
+        r = requests.get(
+            url,
+            headers=headers,
+            timeout=20
+        )
 
-    stores = data.get("body", {}).get("stores", [])
+        print("LOCATION:", location)
+        print("STATUS:", r.status_code)
+        print("CONTENT TYPE:", r.headers.get("content-type"))
 
-    print("STORES FOUND:", len(stores))
-
-    for store in stores:
-        name = store.get("storeName", "Unknown Apple Store")
-        store_number = store.get("storeNumber", name)
-
-        if store_number in seen:
+        if r.status_code != 200:
+            print("Apple request failed")
+            print(r.text[:300])
             continue
 
-        seen.add(store_number)
+        try:
+            data = r.json()
+        except Exception:
+            print("Apple returned non-JSON")
+            print(r.text[:500])
+            continue
 
-        part = store.get("partsAvailability", {}).get(SKU, {})
-        status = str(part.get("pickupDisplay", "")).lower()
+        stores = data.get("body", {}).get("stores", [])
 
-        print(name, "->", status)
+        print("STORES FOUND:", len(stores))
 
-        if status == "available":
-            available.append(name)
+        for store in stores:
+            name = store.get(
+                "storeName",
+                "Unknown Apple Store"
+            )
+
+            store_number = store.get(
+                "storeNumber",
+                name
+            )
+
+            if store_number in seen:
+                continue
+
+            seen.add(store_number)
+
+            part = (
+                store
+                .get("partsAvailability", {})
+                .get(SKU, {})
+            )
+
+            status = str(
+                part.get("pickupDisplay", "")
+            ).lower()
+
+            print(name, "->", status)
+
+            if status == "available":
+                available.append(name)
+
+    except Exception as e:
+        print(
+            f"ERROR checking {location}:",
+            str(e)
+        )
+
 
 print("AVAILABLE:", available)
+
+dubai_now = datetime.now(
+    ZoneInfo("Asia/Dubai")
+)
+
+current_time = dubai_now.strftime(
+    "%d %b %Y %I:%M %p"
+)
 
 if available:
     message = (
         "🚨🚨 IPHONE AVAILABLE NOW 🚨🚨\n\n"
-        "iPhone 18 Pro Max 256GB Burgundy\n\n"
-        + "\n".join(f"✅ {store}" for store in available)
+        f"{PRODUCT_NAME}\n"
+        f"SKU: {SKU}\n\n"
+        + "\n".join(
+            f"✅ {store}"
+            for store in available
+        )
+        + f"\n\nChecked: {current_time}"
     )
+
+    should_send = True
+
 else:
     message = (
-        "❌ Still unavailable\n\n"
-        "iPhone 18 Pro Max 256GB Burgundy\n"
-        "Checked all 5 UAE Apple Stores."
+        "❌ iPhone still unavailable\n\n"
+        f"{PRODUCT_NAME}\n"
+        f"SKU: {SKU}\n\n"
+        f"Checked {len(seen)} UAE Apple Stores.\n\n"
+        f"Checked: {current_time}"
     )
 
-telegram_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    # Only send unavailable status twice per hour:
+    # around :00 and :30
+    should_send = (
+        dubai_now.minute < 5
+        or
+        30 <= dubai_now.minute < 35
+    )
 
-resp = requests.post(
-    telegram_url,
-    json={
-        "chat_id": CHAT_ID,
-        "text": message,
-        "disable_notification": False if available else True,
-    },
-    timeout=20,
-)
 
-print("TELEGRAM STATUS:", resp.status_code)
+if should_send:
+    telegram_url = (
+        f"https://api.telegram.org/"
+        f"bot{BOT_TOKEN}/sendMessage"
+    )
 
-ntfy_url = f"https://ntfy.sh/{NTFY_TOPIC}"
+    try:
+        resp = requests.post(
+            telegram_url,
+            json={
+                "chat_id": CHAT_ID,
+                "text": message,
+                "disable_notification": False,
+            },
+            timeout=20,
+        )
 
-ntfy_resp = requests.post(
-    ntfy_url,
-    data=message.encode("utf-8"),
-    headers={
-        "Title": "Apple UAE Stock",
-        "Priority": "high" if available else "default",
-        "Tags": "iphone,rotating_light" if available else "iphone",
-    },
-    timeout=20,
-)
+        print(
+            "TELEGRAM STATUS:",
+            resp.status_code
+        )
 
-print("NTFY STATUS:", ntfy_resp.status_code)
+        print(
+            "TELEGRAM RESPONSE:",
+            resp.text
+        )
 
+    except Exception as e:
+        print(
+            "TELEGRAM ERROR:",
+            str(e)
+        )
+
+else:
+    print(
+        "Skipping unavailable message "
+        "this run"
+    )
