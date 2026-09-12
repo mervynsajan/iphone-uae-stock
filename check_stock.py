@@ -95,6 +95,7 @@ resp = requests.post(
     json={
         "chat_id": CHAT_ID,
         "text": message,
+        "disable_notification": False if available else True,
     },
     timeout=20,
 )
