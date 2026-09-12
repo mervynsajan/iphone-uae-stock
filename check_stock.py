@@ -4,8 +4,8 @@ from urllib.parse import quote
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-#SKU = "MJX74AH/A"
-SKU = "MH5T4AB/A"
+SKU = "MJX74AH/A" #iphone sku
+#SKU = "MH5T4AB/A" #ipad sku
 
 
 PRODUCT_NAME = "iPhone 18 Pro Max 256GB Burgundy"
