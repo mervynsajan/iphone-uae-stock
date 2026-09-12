@@ -75,16 +75,14 @@ print("AVAILABLE:", available)
 
 if available:
     message = (
-        "🚨 APPLE UAE PICKUP AVAILABLE\n\n"
-        "iPhone 18 Pro Max 256GB Burgundy\n"
-        f"SKU: {SKU}\n\n"
+        "🚨🚨 IPHONE AVAILABLE NOW 🚨🚨\n\n"
+        "iPhone 18 Pro Max 256GB Burgundy\n\n"
         + "\n".join(f"✅ {store}" for store in available)
     )
 else:
     message = (
-        "❌ iPhone still unavailable\n\n"
+        "❌ Still unavailable\n\n"
         "iPhone 18 Pro Max 256GB Burgundy\n"
-        f"SKU: {SKU}\n\n"
         "Checked all 5 UAE Apple Stores."
     )
 
