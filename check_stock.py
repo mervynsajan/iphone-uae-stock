@@ -4,6 +4,8 @@ from urllib.parse import quote
 
 SKU = "MJX74AH/A"  # test iPhone
 
+NTFY_TOPIC = "mervyn_iphone_stock" # ntfy name
+
 LOCATIONS = [
     "Dubai",
     "Abu Dhabi",
@@ -98,3 +100,18 @@ resp = requests.post(
 )
 
 print("TELEGRAM STATUS:", resp.status_code)
+
+ntfy_url = f"https://ntfy.sh/{NTFY_TOPIC}"
+
+ntfy_resp = requests.post(
+    ntfy_url,
+    data=message.encode("utf-8"),
+    headers={
+        "Title": "Apple UAE Stock",
+        "Priority": "high" if available else "default",
+        "Tags": "iphone,rotating_light" if available else "iphone",
+    },
+    timeout=20,
+)
+
+print("NTFY STATUS:", ntfy_resp.status_code)
