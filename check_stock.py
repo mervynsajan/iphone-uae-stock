@@ -12,8 +12,6 @@ PRODUCT_NAME = "iPhone 18 Pro Max 256GB Burgundy"
 
 LOCATIONS = [
     "Dubai",
-    "Abu Dhabi",
-    "Al Ain",
 ]
 
 BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
