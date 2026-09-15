@@ -137,8 +137,8 @@ else:
     # around :00 and :30
     should_send = (
         dubai_now.minute < 2
-        or
-        30 <= dubai_now.minute < 32
+      #  or
+        #30 <= dubai_now.minute < 32
     )
 
 
