@@ -208,7 +208,7 @@ else:
 
     # Only send unavailable status around :00 and :30
     should_send = (
-        0 <= dubai_now.minute < 3
+        0 <= dubai_now.minute < 2
        # or
        # 30 <= dubai_now.minute < 33
     )
