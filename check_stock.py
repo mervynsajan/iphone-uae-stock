@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 PRODUCTS = {
     "Burgundy": "MJX74AH/A",
     "Glacier": "MJX84AH/A",
+    "iPad Test": "MH5T4AB/A",
 }
 
 PRODUCT_NAME = "iPhone 18 Pro Max 256GB"
