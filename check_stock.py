@@ -10,8 +10,10 @@ from zoneinfo import ZoneInfo
 # ============================================================
 
 PRODUCTS = {
-    "Burgundy": "MJX74AH/A",
-    "Glacier": "MJX84AH/A",
+    "Burgundy 256GB": "MJX74AH/A",
+    "Glacier 256GB": "MJX84AH/A",
+    "Burgundy 512GB": "MJXC4AH/A",
+    "Glacier 512GB": "MJXD4AH/A",
     #"iPad Test": "MH5T4AB/A",
 }
 
