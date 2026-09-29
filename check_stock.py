@@ -23,7 +23,10 @@ PRODUCT_NAME = "iPhone 18 Pro Max 256GB"
 PICKUP_LOCATION = "Dubai"
 
 BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
-CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
+CHAT_IDS = [
+    os.environ["TELEGRAM_CHAT_ID"],
+    os.environ["BROTHER_TELEGRAM_CHAT_ID"],
+]
 
 HEADERS = {
     "User-Agent": (
@@ -242,21 +245,19 @@ if should_send:
     )
 
     try:
-        telegram_response = requests.post(
-            telegram_url,
-            json={
-                "chat_id": CHAT_ID,
-                "text": message,
-
-                # Available alert = normal notification
-                # Unavailable status = silent
-                "disable_notification": not any_available,
+       for chat_id in CHAT_IDS:
+            telegram_response = requests.post(
+                telegram_url,
+                json={
+                    "chat_id": chat_id,
+                    "text": message,
+                    "disable_notification": not any_available,
             },
             timeout=20,
         )
 
         print(
-            "TELEGRAM STATUS:",
+            f"TELEGRAM STATUS for {chat_id}:",
             telegram_response.status_code
         )
 
