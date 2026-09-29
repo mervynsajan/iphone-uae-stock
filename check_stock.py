@@ -12,6 +12,8 @@ from zoneinfo import ZoneInfo
 PRODUCTS = {
     "iPhone 18 Pro Max 256GB Burgundy": "MJX74AH/A",
     "iPhone 18 Pro Max 256GB Glacier": "MJX84AH/A",
+    "iPhone 18 Pro Max 256GB Black": "MJX54AH/A",
+    
 
     # TEST PRODUCT
     # Uncomment this line when you want to test notifications:
@@ -277,9 +279,8 @@ else:
     # Send unavailable status only around
     # :00 and :30 UAE time
     should_send = (
-        0 <= dubai_now.minute < 3
-        or
-        30 <= dubai_now.minute < 33
+        0 <= dubai_now.minute < 2
+
     )
 
 
