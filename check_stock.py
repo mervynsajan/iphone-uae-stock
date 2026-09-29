@@ -15,7 +15,7 @@ PRODUCTS = {
 
     # TEST PRODUCT
     # Uncomment this line when you want to test notifications:
-    # "TEST iPad": "MH5T4AB/A",
+    "TEST iPad": "MH5T4AB/A",
 }
 
 
