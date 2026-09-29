@@ -6,23 +6,27 @@ from zoneinfo import ZoneInfo
 
 
 # ============================================================
-# SETTINGS
+# PRODUCTS TO MONITOR
 # ============================================================
 
 PRODUCTS = {
-    "Burgundy 256GB": "MJX74AH/A",
-    "Glacier 256GB": "MJX84AH/A",
-    "Burgundy 512GB": "MJXC4AH/A",
-    "Glacier 512GB": "MJXD4AH/A",
-    #"iPad Test": "MH5T4AB/A",
+    "iPhone 18 Pro Max 256GB Burgundy": "MJX74AH/A",
+    "iPhone 18 Pro Max 256GB Glacier": "MJX84AH/A",
+
+    # TEST PRODUCT
+    # Uncomment this line when you want to test notifications:
+    # "TEST iPad": "MH5T4AB/A",
 }
 
-PRODUCT_NAME = "iPhone 18 Pro Max 256GB"
 
-# One Dubai query already returns all 5 UAE Apple Stores
+# ============================================================
+# SETTINGS
+# ============================================================
+
 PICKUP_LOCATION = "Dubai"
 
 BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
+
 CHAT_IDS = [
     os.environ["TELEGRAM_CHAT_ID"],
     os.environ["BROTHER_TELEGRAM_CHAT_ID"],
@@ -40,20 +44,24 @@ HEADERS = {
 
 
 # ============================================================
-# PICKUP CHECK
+# CHECK STOCK
 # ============================================================
 
-availability_by_color = {}
+availability = {}
+
 all_seen_stores = set()
 
 print("\n==============================")
-print("CHECKING UAE PICKUP")
+print("CHECKING APPLE UAE STOCK")
 print("==============================")
 
 
-for color, sku in PRODUCTS.items():
+for product_name, sku in PRODUCTS.items():
 
-    print(f"\n--- {color} ---")
+    print("\n------------------------------")
+    print(product_name)
+    print("SKU:", sku)
+    print("------------------------------")
 
     pickup_url = (
         "https://www.apple.com/ae/shop/retail/pickup-message"
@@ -63,9 +71,10 @@ for color, sku in PRODUCTS.items():
         f"&location={quote(PICKUP_LOCATION)}"
     )
 
-    color_available_stores = []
+    available_stores = []
 
     try:
+
         response = requests.get(
             pickup_url,
             headers=HEADERS,
@@ -73,27 +82,46 @@ for color, sku in PRODUCTS.items():
         )
 
         print("STATUS:", response.status_code)
-        print("CONTENT TYPE:", response.headers.get("content-type"))
+        print(
+            "CONTENT TYPE:",
+            response.headers.get("content-type")
+        )
 
         if response.status_code != 200:
-            print(f"{color} request failed.")
+
+            print("Apple request failed.")
             print(response.text[:300])
-            availability_by_color[color] = []
+
+            availability[product_name] = []
+
             continue
+
 
         try:
+
             data = response.json()
+
         except Exception:
-            print(f"Apple returned non-JSON for {color}.")
+
+            print("Apple returned non-JSON.")
             print(response.text[:500])
-            availability_by_color[color] = []
+
+            availability[product_name] = []
+
             continue
 
-        stores = data.get("body", {}).get("stores", [])
+
+        stores = (
+            data
+            .get("body", {})
+            .get("stores", [])
+        )
 
         print("STORES FOUND:", len(stores))
 
+
         for store in stores:
+
             store_name = store.get(
                 "storeName",
                 "Unknown Apple Store"
@@ -106,6 +134,7 @@ for color, sku in PRODUCTS.items():
 
             all_seen_stores.add(store_number)
 
+
             part = (
                 store
                 .get("partsAvailability", {})
@@ -116,32 +145,45 @@ for color, sku in PRODUCTS.items():
                 part.get("pickupDisplay", "")
             ).lower()
 
+
             print(
                 f"{store_name} -> {pickup_status}"
             )
 
+
             if pickup_status == "available":
-                color_available_stores.append(store_name)
+
+                available_stores.append(
+                    store_name
+                )
+
 
     except Exception as e:
+
         print(
-            f"ERROR checking {color}:",
+            f"ERROR checking {product_name}:",
             str(e)
         )
 
-    availability_by_color[color] = color_available_stores
+
+    availability[product_name] = available_stores
 
 
 # ============================================================
-# SUMMARY
+# PRINT SUMMARY
 # ============================================================
 
 print("\n==============================")
 print("AVAILABILITY SUMMARY")
 print("==============================")
 
-for color, stores in availability_by_color.items():
-    print(f"{color}: {stores}")
+
+for product_name, stores in availability.items():
+
+    print(
+        f"{product_name}:",
+        stores
+    )
 
 
 # ============================================================
@@ -158,12 +200,12 @@ current_time = dubai_now.strftime(
 
 
 # ============================================================
-# CHECK IF ANY COLOR IS AVAILABLE
+# CHECK IF ANYTHING IS AVAILABLE
 # ============================================================
 
 any_available = any(
     len(stores) > 0
-    for stores in availability_by_color.values()
+    for stores in availability.values()
 )
 
 
@@ -174,67 +216,97 @@ any_available = any(
 if any_available:
 
     message = (
-        "🚨🚨 IPHONE AVAILABLE NOW 🚨🚨\n\n"
-        f"{PRODUCT_NAME}\n\n"
+        "🚨🚨 APPLE STOCK AVAILABLE 🚨🚨\n\n"
     )
 
-    for color, stores in availability_by_color.items():
+
+    for product_name, stores in availability.items():
 
         if stores:
+
             message += (
-                f"✅ {color}\n"
-                + "\n".join(
-                    f"   🏬 {store}"
-                    for store in stores
+                f"✅ {product_name}\n"
+            )
+
+            for store in stores:
+
+                message += (
+                    f"   🏬 {store}\n"
                 )
-                + "\n\n"
-            )
+
+            message += "\n"
+
         else:
+
             message += (
-                f"❌ {color}: unavailable\n\n"
+                f"❌ {product_name}\n"
+                "   Unavailable\n\n"
             )
+
 
     message += (
         f"Checked: {current_time}"
     )
 
-    # If ANY color is available, send immediately
+
+    # Always send immediately if anything is available
     should_send = True
+
 
 else:
 
     message = (
-        "❌ iPhone still unavailable\n\n"
-        f"{PRODUCT_NAME}\n\n"
-        "Burgundy: ❌ Unavailable\n"
-        "Glacier: ❌ Unavailable\n\n"
-        f"Checked {len(all_seen_stores)} UAE Apple Stores.\n\n"
+        "❌ Apple stock still unavailable\n\n"
+    )
+
+
+    for product_name in PRODUCTS:
+
+        message += (
+            f"❌ {product_name}\n"
+        )
+
+
+    message += (
+        f"\nChecked {len(all_seen_stores)} "
+        "UAE Apple Stores.\n\n"
         f"Checked: {current_time}"
     )
 
-    # Only send unavailable status around :00 and :30
+
+    # Send unavailable status only around
+    # :00 and :30 UAE time
     should_send = (
-        0 <= dubai_now.minute < 2
-       # or
-       # 30 <= dubai_now.minute < 33
+        0 <= dubai_now.minute < 3
+        or
+        30 <= dubai_now.minute < 33
     )
 
 
 # ============================================================
-# DEBUG OUTPUT
+# DEBUG
 # ============================================================
 
 print("\n==============================")
 print("NOTIFICATION DECISION")
 print("==============================")
 
+
 print("CURRENT UAE TIME:", current_time)
-print("ANY AVAILABLE:", any_available)
-print("SHOULD SEND:", should_send)
+
+print(
+    "ANY AVAILABLE:",
+    any_available
+)
+
+print(
+    "SHOULD SEND:",
+    should_send
+)
 
 
 # ============================================================
-# SEND TELEGRAM MESSAGE
+# SEND TO BOTH TELEGRAM USERS
 # ============================================================
 
 if should_send:
@@ -244,35 +316,51 @@ if should_send:
         f"bot{BOT_TOKEN}/sendMessage"
     )
 
-    try:
-       for chat_id in CHAT_IDS:
+
+    for chat_id in CHAT_IDS:
+
+        try:
+
             telegram_response = requests.post(
                 telegram_url,
                 json={
                     "chat_id": chat_id,
                     "text": message,
-                    "disable_notification": not any_available,
-            },
-            timeout=20,
-        )
 
-        print(
-            f"TELEGRAM STATUS for {chat_id}:",
-            telegram_response.status_code
-        )
+                    # Available = normal push
+                    # Unavailable = silent
+                    "disable_notification":
+                        not any_available,
+                },
+                timeout=20,
+            )
 
-        print(
-            "TELEGRAM RESPONSE:",
-            telegram_response.text
-        )
 
-    except Exception as e:
-        print(
-            "TELEGRAM ERROR:",
-            str(e)
-        )
+            print(
+                f"TELEGRAM STATUS "
+                f"for {chat_id}:",
+                telegram_response.status_code
+            )
+
+
+            print(
+                "TELEGRAM RESPONSE:",
+                telegram_response.text
+            )
+
+
+        except Exception as e:
+
+            print(
+                f"TELEGRAM ERROR "
+                f"for {chat_id}:",
+                str(e)
+            )
+
 
 else:
+
     print(
-        "Skipping unavailable message this run"
+        "Skipping unavailable "
+        "message this run"
     )
