@@ -13,7 +13,7 @@ PRODUCTS = {
     "iPhone 18 Pro Max 256GB Burgundy": "MJX74AH/A",
    # "iPhone 18 Pro Max 256GB Glacier": "MJX84AH/A",
    # "iPhone 18 Pro Max 256GB Black": "MJX54AH/A",
-    
+
 
     # TEST PRODUCT
     # Uncomment this line when you want to test notifications:
@@ -26,6 +26,14 @@ PRODUCTS = {
 # ============================================================
 
 PICKUP_LOCATION = "Dubai"
+
+# Only these stores are checked (case-insensitive match on storeName).
+# If the log shows both as "skipped", copy the exact names from
+# the "-> skipped" lines into this list (lowercase).
+ALLOWED_STORES = [
+    "dubai mall",
+    "mall of the emirates",
+]
 
 BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 
@@ -128,6 +136,14 @@ for product_name, sku in PRODUCTS.items():
                 "storeName",
                 "Unknown Apple Store"
             )
+
+            # Skip stores we don't care about
+            if not any(
+                allowed in store_name.lower()
+                for allowed in ALLOWED_STORES
+            ):
+                print(f"{store_name} -> skipped")
+                continue
 
             store_number = store.get(
                 "storeNumber",
@@ -270,17 +286,16 @@ else:
 
 
     message += (
-        f"\nChecked {len(all_seen_stores)} "
-        "UAE Apple Stores.\n\n"
+        f"\nChecked {len(all_seen_stores)} stores "
+        "(Dubai Mall, Mall of the Emirates).\n\n"
         f"Checked: {current_time}"
     )
 
 
     # Send unavailable status only around
-    # :00 and :30 UAE time
+    # the top of the hour UAE time
     should_send = (
         0 <= dubai_now.minute < 2
-
     )
 
 
