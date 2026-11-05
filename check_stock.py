@@ -11,8 +11,8 @@ from zoneinfo import ZoneInfo
 
 PRODUCTS = {
     "iPhone 18 Pro Max 256GB Burgundy": "MJX74AH/A",
-    "iPhone 18 Pro Max 256GB Glacier": "MJX84AH/A",
-    "iPhone 18 Pro Max 256GB Black": "MJX54AH/A",
+   # "iPhone 18 Pro Max 256GB Glacier": "MJX84AH/A",
+   # "iPhone 18 Pro Max 256GB Black": "MJX54AH/A",
     
 
     # TEST PRODUCT
