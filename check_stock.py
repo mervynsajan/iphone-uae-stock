@@ -6,18 +6,52 @@ from zoneinfo import ZoneInfo
 
 
 # ============================================================
-# PRODUCTS TO MONITOR
+# STORE GROUPS
 # ============================================================
 
-PRODUCTS = {
-    "iPhone 18 Pro Max 256GB Burgundy": "MJX74AH/A",
-   # "iPhone 18 Pro Max 256GB Glacier": "MJX84AH/A",
-   # "iPhone 18 Pro Max 256GB Black": "MJX54AH/A",
+# Case-insensitive match on Apple's storeName.
+DUBAI_STORES = [
+    "dubai mall",
+    "mall of the emirates",
+]
 
+# None = every store Apple returns (all 5 UAE stores)
+ALL_UAE = None
+
+
+# ============================================================
+# PRODUCTS TO MONITOR
+# ============================================================
+# "stores": which stores count for this product
+#   DUBAI_STORES -> only Dubai Mall + Mall of the Emirates
+#   ALL_UAE      -> any Apple Store in the UAE
+
+PRODUCTS = {
+    # "iPhone 18 Pro Max 256GB Burgundy": {
+    #     "sku": "MJX74AH/A",
+    #     "stores": DUBAI_STORES,
+    # },
+
+    "iPhone Duo 2TB Night Sky": {
+        "sku": "MK2C4AH/A",
+        "stores": ALL_UAE,
+    },
+
+    # "iPhone 18 Pro Max 256GB Glacier": {
+    #     "sku": "MJX84AH/A",
+    #     "stores": DUBAI_STORES,
+    # },
+    # "iPhone 18 Pro Max 256GB Black": {
+    #     "sku": "MJX54AH/A",
+    #     "stores": DUBAI_STORES,
+    # },
 
     # TEST PRODUCT
-    # Uncomment this line when you want to test notifications:
-    #"TEST iPad": "MH5T4AB/A",
+    # Uncomment when you want to test notifications:
+    # "TEST iPad": {
+    #     "sku": "MH5T4AB/A",
+    #     "stores": ALL_UAE,
+    # },
 }
 
 
@@ -26,14 +60,6 @@ PRODUCTS = {
 # ============================================================
 
 PICKUP_LOCATION = "Dubai"
-
-# Only these stores are checked (case-insensitive match on storeName).
-# If the log shows both as "skipped", copy the exact names from
-# the "-> skipped" lines into this list (lowercase).
-ALLOWED_STORES = [
-    "dubai mall",
-    "mall of the emirates",
-]
 
 BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 
@@ -53,24 +79,43 @@ HEADERS = {
 }
 
 
+def store_allowed(store_name, allowed):
+    if allowed is None:
+        return True
+    name = store_name.lower()
+    return any(a in name for a in allowed)
+
+
+def scope_label(allowed):
+    if allowed is None:
+        return "all UAE stores"
+    return "Dubai Mall, Mall of the Emirates" if allowed == DUBAI_STORES \
+        else ", ".join(allowed)
+
+
 # ============================================================
 # CHECK STOCK
 # ============================================================
 
 availability = {}
 
-all_seen_stores = set()
+# How many stores were actually checked for each product
+stores_checked = {}
 
 print("\n==============================")
 print("CHECKING APPLE UAE STOCK")
 print("==============================")
 
 
-for product_name, sku in PRODUCTS.items():
+for product_name, cfg in PRODUCTS.items():
+
+    sku = cfg["sku"]
+    allowed = cfg["stores"]
 
     print("\n------------------------------")
     print(product_name)
     print("SKU:", sku)
+    print("STORES:", scope_label(allowed))
     print("------------------------------")
 
     pickup_url = (
@@ -82,6 +127,7 @@ for product_name, sku in PRODUCTS.items():
     )
 
     available_stores = []
+    checked = set()
 
     try:
 
@@ -103,6 +149,7 @@ for product_name, sku in PRODUCTS.items():
             print(response.text[:300])
 
             availability[product_name] = []
+            stores_checked[product_name] = 0
 
             continue
 
@@ -117,6 +164,7 @@ for product_name, sku in PRODUCTS.items():
             print(response.text[:500])
 
             availability[product_name] = []
+            stores_checked[product_name] = 0
 
             continue
 
@@ -137,11 +185,7 @@ for product_name, sku in PRODUCTS.items():
                 "Unknown Apple Store"
             )
 
-            # Skip stores we don't care about
-            if not any(
-                allowed in store_name.lower()
-                for allowed in ALLOWED_STORES
-            ):
+            if not store_allowed(store_name, allowed):
                 print(f"{store_name} -> skipped")
                 continue
 
@@ -150,7 +194,7 @@ for product_name, sku in PRODUCTS.items():
                 store_name
             )
 
-            all_seen_stores.add(store_number)
+            checked.add(store_number)
 
 
             part = (
@@ -158,6 +202,12 @@ for product_name, sku in PRODUCTS.items():
                 .get("partsAvailability", {})
                 .get(sku, {})
             )
+
+            if not part:
+                print(
+                    f"{store_name} -> no data for this SKU "
+                    "(check the part number)"
+                )
 
             pickup_status = str(
                 part.get("pickupDisplay", "")
@@ -185,6 +235,7 @@ for product_name, sku in PRODUCTS.items():
 
 
     availability[product_name] = available_stores
+    stores_checked[product_name] = len(checked)
 
 
 # ============================================================
@@ -278,16 +329,16 @@ else:
     )
 
 
-    for product_name in PRODUCTS:
+    for product_name, cfg in PRODUCTS.items():
 
         message += (
             f"❌ {product_name}\n"
+            f"   {stores_checked.get(product_name, 0)} stores checked "
+            f"({scope_label(cfg['stores'])})\n\n"
         )
 
 
     message += (
-        f"\nChecked {len(all_seen_stores)} stores "
-        "(Dubai Mall, Mall of the Emirates).\n\n"
         f"Checked: {current_time}"
     )
 
